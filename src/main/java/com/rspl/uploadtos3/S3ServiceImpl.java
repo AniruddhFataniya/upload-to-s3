@@ -1,5 +1,9 @@
 package com.rspl.uploadtos3;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
+import com.amazonaws.services.s3.transfer.Upload;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestPart;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -47,8 +51,68 @@ public class S3ServiceImpl implements S3Service{
         }catch(S3Exception e){
             System.err.println(e.getMessage());
         }
+
+
     }
 
+    @Override
+    public void multipartUpload(AmazonS3 client, String bucketName, String objetctKey, String objectPath) throws IOException, InterruptedException {
+        try {
+            TransferManager transferManager = TransferManagerBuilder.standard()
+                    .withS3Client(client)
+                    .withMultipartUploadThreshold((long) (10485760)) //if size > 10 MB
+                    .withMinimumUploadPartSize((long) (10485760))
+                    .build();
+
+            Upload upload = transferManager.upload(bucketName, objetctKey, new File(objectPath));
+            System.out.println("Object upload started");
+            upload.waitForCompletion();
+            System.out.println("Object upload complete");
+            transferManager.shutdownNow();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+//        CreateMultipartUploadRequest createMultipartUploadRequest = CreateMultipartUploadRequest.builder()
+//                .bucket(bucketName)
+//                .key(objetctKey)
+//                .build();
+//
+//        CreateMultipartUploadResponse response = client.createMultipartUpload(createMultipartUploadRequest);
+//        String uploadId = response.uploadId();
+//        System.out.println(uploadId);
+//
+//        // Upload different parts of the object
+//        UploadPartRequest uploadPartRequest1 = UploadPartRequest.builder()
+//                .bucket(bucketName)
+//                .key(objetctKey)
+//                .uploadId(uploadId)
+//                .partNumber(1)
+//                .build();
+//
+//        String etag1 = client.uploadPart(uploadPartRequest1, RequestBody.fromBytes(getObjectFile(objectPath))).eTag();
+//
+//        CompletedPart part1 = CompletedPart.builder()
+//                .partNumber(1)
+//                .eTag(etag1)
+//                .build();
+//
+//        UploadPartRequest uploadPartRequest2 = UploadPartRequest.builder()
+//                .uploadId(uploadId)
+//                .partNumber(2)
+//                .build();
+//
+//        String etag2 = client.uploadPart(uploadPartRequest2, RequestBody.fromBytes(getObjectFile(objectPath))).eTag();
+//
+//        CompletedPart part2 = CompletedPart.builder()
+//                .partNumber(2)
+//                .build();
+//
+
+        
+
+
+    }
 
 
     // Return a byte array.
